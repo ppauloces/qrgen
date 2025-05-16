@@ -21,8 +21,11 @@ export async function POST(request: Request) {
         quantity: 1,
         unit_price: 10,
         currency_id: "BRL",
-      },
+      }
     ],
+    payment_methods: {
+      excluded_payment_types: [{ id: "wallet" }]
+    },
     back_urls: {
       success: `${origin}/success`,
       failure: `${origin}/failure`,
