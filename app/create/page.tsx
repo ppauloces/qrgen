@@ -77,115 +77,31 @@ export default function CreatePage() {
   })
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    setIsSubmitting(true)
-
+    setIsSubmitting(true);
     try {
-      // Criar FormData para enviar o arquivo
-      const formData = new FormData()
-      formData.append("email", values.email)
-      formData.append("contentType", values.contentType)
-      formData.append("content", values.content)
-      formData.append("qrSize", qrSize.toString())
-      formData.append("qrForeground", qrForeground)
-      formData.append("qrBackground", qrBackground)
-      formData.append("logoSize", logoSize.toString())
-      formData.append("logoPosition", logoPosition)
-      formData.append("customText", customText)
-      formData.append("textPosition", textPosition)
-      formData.append("textFont", textFont)
-      formData.append("textSize", textSize.toString())
-      formData.append("useMainLogo", useMainLogo.toString())
-      formData.append("secondLogoPosition", secondLogoPosition)
-      formData.append("textColor", textColor)
-      formData.append("printBackground", printBackground)
-
-      // Verificar se a logo existe e adicionar ao FormData
-      if (values.logo && values.logo.length > 0) {
-        console.log("Logo encontrada:", {
-          name: values.logo[0].name,
-          type: values.logo[0].type,
-          size: values.logo[0].size,
-        })
-        formData.append("logo", values.logo[0])
-      } else {
-        console.log("Nenhuma logo selecionada")
-      }
-
-      if (!useMainLogo && secondLogo) {
-        formData.append("secondLogo", secondLogo)
-      }
-
-      // Log dos dados do FormData
-      console.log("Dados do formulário:", {
-        email: values.email,
-        contentType: values.contentType,
-        content: values.content,
-        qrSize,
-        qrForeground,
-        qrBackground,
-        logoSize,
-        logoPosition,
-        customText,
-        textPosition,
-        textFont,
-        textSize,
-        useMainLogo,
-        secondLogoPosition,
-        hasLogo: values.logo && values.logo.length > 0,
-        hasSecondLogo: !!secondLogo,
-      })
-
-      // URL da API
-      const apiUrl = "/api/qr"
-      console.log("Enviando requisição para:", apiUrl)
-
-      // Enviar para a API
-      const response = await fetch(apiUrl, {
+      // Envie os dados do usuário para a API de pagamento
+      const response = await fetch("/api/payment", {
         method: "POST",
-        body: formData,
-      })
-
-      // Log da resposta
-      console.log("Status da resposta:", response.status)
-      console.log("Headers da resposta:", Object.fromEntries(response.headers.entries()))
-
-      // Tentar ler o corpo da resposta como texto primeiro
-      const responseText = await response.text()
-      console.log("Resposta bruta:", responseText)
-
-      // Verificar se a resposta é HTML
-      if (responseText.trim().startsWith("<!DOCTYPE")) {
-        console.error("Recebido HTML em vez de JSON")
-        throw new Error("Erro na rota da API")
-      }
-
-      // Tentar fazer o parse do JSON
-      let data
-      try {
-        data = JSON.parse(responseText)
-      } catch (e) {
-        console.error("Erro ao fazer parse do JSON:", e)
-        throw new Error("Resposta inválida do servidor")
-      }
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: values.email }), // envie apenas o e-mail ou outros campos necessários
+      });
 
       if (!response.ok) {
-        throw new Error(data.error || "Erro ao processar o QR Code")
+        throw new Error("Erro ao criar pagamento");
       }
 
-      toast({
-        title: "QR Code enviado!",
-        description: "Verifique seu email para receber os arquivos.",
-      })
+      const { init_point } = await response.json();
 
+      // Redireciona para o checkout do Mercado Pago
+      window.location.href = init_point;
     } catch (error) {
-      console.error("Error submitting form:", error)
       toast({
         variant: "destructive",
-        title: "Erro ao processar o QR Code",
-        description: error instanceof Error ? error.message : "Ocorreu um erro ao processar sua solicitação. Tente novamente.",
-      })
+        title: "Erro ao redirecionar para o pagamento",
+        description: error instanceof Error ? error.message : "Tente novamente.",
+      });
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
     }
   }
 
@@ -403,8 +319,8 @@ export default function CreatePage() {
                   </div>
                 </div>
 
-                <Button type="submit" className="w-full" disabled={isSubmitting}>
-                  {isSubmitting ? "Processando..." : "Gerar QR Code"}
+                <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700" disabled={isSubmitting}>
+                  {isSubmitting ? "Processando..." : "Pagar com Mercado Pago"}
                 </Button>
               </form>
             </Form>
