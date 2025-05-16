@@ -18,6 +18,7 @@ import { useToast } from "@/components/ui/use-toast"
 import { QRCodeSVG } from "qrcode.react"
 import { Slider } from "@/components/ui/slider"
 import { Label } from "@/components/ui/label"
+import { Switch } from "@/components/ui/switch"
 
 const formSchema = z.object({
   email: z.string().email({ message: "E-mail inválido" }),
@@ -57,7 +58,14 @@ export default function CreatePage() {
   const [logoPosition, setLogoPosition] = useState<"center" | "below">("center")
   const [customText, setCustomText] = useState("")
   const [textPosition, setTextPosition] = useState<"above" | "below">("below")
+  const [textFont, setTextFont] = useState("Montserrat")
+  const [textSize, setTextSize] = useState(24)
   const [logoSize, setLogoSize] = useState(0.2)
+  const [secondLogo, setSecondLogo] = useState<File | null>(null)
+  const [secondLogoPosition, setSecondLogoPosition] = useState<"top-left" | "top-right" | "bottom-left" | "bottom-right">("top-right")
+  const [useMainLogo, setUseMainLogo] = useState(false)
+  const [textColor, setTextColor] = useState("#000000")
+  const [printBackground, setPrintBackground] = useState("#FFFFFF")
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -84,6 +92,12 @@ export default function CreatePage() {
       formData.append("logoPosition", logoPosition)
       formData.append("customText", customText)
       formData.append("textPosition", textPosition)
+      formData.append("textFont", textFont)
+      formData.append("textSize", textSize.toString())
+      formData.append("useMainLogo", useMainLogo.toString())
+      formData.append("secondLogoPosition", secondLogoPosition)
+      formData.append("textColor", textColor)
+      formData.append("printBackground", printBackground)
 
       // Verificar se a logo existe e adicionar ao FormData
       if (values.logo && values.logo.length > 0) {
@@ -95,6 +109,10 @@ export default function CreatePage() {
         formData.append("logo", values.logo[0])
       } else {
         console.log("Nenhuma logo selecionada")
+      }
+
+      if (!useMainLogo && secondLogo) {
+        formData.append("secondLogo", secondLogo)
       }
 
       // Log dos dados do FormData
@@ -109,7 +127,12 @@ export default function CreatePage() {
         logoPosition,
         customText,
         textPosition,
+        textFont,
+        textSize,
+        useMainLogo,
+        secondLogoPosition,
         hasLogo: values.logo && values.logo.length > 0,
+        hasSecondLogo: !!secondLogo,
       })
 
       // URL da API
@@ -396,170 +419,300 @@ export default function CreatePage() {
           <CardContent>
             <div className="flex flex-col items-center justify-center p-6">
               <div className="flex flex-col items-center gap-4">
-                {textPosition === "above" && customText && (
-                  <p className="text-center text-lg font-medium">{customText}</p>
-                )}
-
-                <div className="relative bg-white p-4 rounded-lg shadow-lg" style={{ width: qrSize, height: qrSize }}>
-                  <QRCodeSVG
-                    value={form.watch("content") || "https://exemplo.com"}
-                    size={qrSize}
-                    level={qrLevel}
-                    includeMargin={false}
-                    className="w-full h-full"
-                    fgColor={qrForeground}
-                    bgColor={qrBackground}
-                  />
-                  {logoPosition === "center" && logoPreview && (
-                    <div 
-                      className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"
+                {/* Preview do modelo de impressão */}
+                <div
+                  className="relative rounded-lg shadow-lg"
+                  style={{
+                    width: qrSize * 2,
+                    height: qrSize * 2.2,
+                    background: '#fff',
+                    margin: '0 auto',
+                  }}
+                >
+                  {/* QR Code centralizado */}
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: (qrSize * 2.2 - qrSize) / 2,
+                      left: (qrSize * 2 - qrSize) / 2,
+                      width: qrSize,
+                      height: qrSize,
+                    }}
+                  >
+                    <QRCodeSVG
+                      value={form.watch("content") || "https://exemplo.com"}
+                      size={qrSize}
+                      level={qrLevel}
+                      includeMargin={false}
+                      className="w-full h-full"
+                      fgColor={qrForeground}
+                      bgColor={qrBackground}
+                    />
+                    {logoPosition === "center" && logoPreview && (
+                      <div
+                        className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"
+                        style={{
+                          width: qrSize * logoSize,
+                          height: qrSize * logoSize,
+                          backgroundColor: 'white',
+                          borderRadius: '50%',
+                          padding: '2px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        <img
+                          src={logoPreview}
+                          alt="Logo"
+                          className="w-full h-full object-contain"
+                          style={{
+                            maxWidth: '100%',
+                            maxHeight: '100%',
+                            objectFit: 'contain',
+                          }}
+                        />
+                      </div>
+                    )}
+                  </div>
+                  {/* Segunda logo nos cantos do modelo de impressão */}
+                  {secondLogo && (
+                    <img
+                      src={URL.createObjectURL(secondLogo)}
+                      alt="Segunda Logo"
                       style={{
-                        width: qrSize * logoSize,
-                        height: qrSize * logoSize,
-                        backgroundColor: 'white',
-                        borderRadius: '50%',
-                        padding: '2px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
+                        position: 'absolute',
+                        width: qrSize * 2 * 0.3,
+                        height: qrSize * 2.2 * 0.15,
+                        objectFit: 'contain',
+                        ...(secondLogoPosition === 'top-left' && { top: 12, left: 12 }),
+                        ...(secondLogoPosition === 'top-right' && { top: 12, right: 12 }),
+                        ...(secondLogoPosition === 'bottom-left' && { bottom: 12, left: 12 }),
+                        ...(secondLogoPosition === 'bottom-right' && { bottom: 12, right: 12 }),
+                      }}
+                    />
+                  )}
+                  {/* Texto personalizado acima ou abaixo do QR Code */}
+                  {textPosition === "above" && customText && (
+                    <p
+                      className="absolute w-full text-center font-medium"
+                      style={{
+                        top: ((qrSize * 2.2 - qrSize) / 2) - textSize * 2 - 8,
+                        left: 0,
+                        fontFamily: textFont + ", Arial, sans-serif",
+                        fontSize: textSize,
+                        color: textColor,
+                        marginBottom: 8,
+                        zIndex: 2,
                       }}
                     >
-                      <img
-                        src={logoPreview}
-                        alt="Logo"
-                        className="w-full h-full object-contain"
-                        style={{
-                          maxWidth: '100%',
-                          maxHeight: '100%',
-                          objectFit: 'contain'
-                        }}
-                      />
-                    </div>
+                      {customText}
+                    </p>
+                  )}
+                  {textPosition === "below" && customText && (
+                    <p
+                      className="absolute w-full text-center font-medium"
+                      style={{
+                        top: ((qrSize * 2.2 - qrSize) / 2) + qrSize + 8,
+                        left: 0,
+                        fontFamily: textFont + ", Arial, sans-serif",
+                        fontSize: textSize,
+                        color: textColor,
+                        marginTop: 8,
+                        zIndex: 2,
+                      }}
+                    >
+                      {customText}
+                    </p>
                   )}
                 </div>
 
-                {logoPosition === "below" && logoPreview && (
-                  <div 
-                    className="flex justify-center"
-                    style={{
-                      width: qrSize * logoSize,
-                      height: qrSize * logoSize,
-                    }}
-                  >
-                    <img
-                      src={logoPreview}
-                      alt="Logo"
-                      className="w-full h-full object-contain"
+                <div className="w-full mt-6 space-y-4">
+                  <div className="space-y-2">
+                    <Label>Tamanho</Label>
+                    <Slider
+                      value={[qrSize]}
+                      onValueChange={([value]) => setQrSize(value)}
+                      min={128}
+                      max={512}
+                      step={8}
                     />
                   </div>
-                )}
 
-                {textPosition === "below" && customText && (
-                  <p className="text-center text-lg font-medium">{customText}</p>
-                )}
-              </div>
-
-              <div className="w-full mt-6 space-y-4">
-                <div className="space-y-2">
-                  <Label>Tamanho</Label>
-                  <Slider
-                    value={[qrSize]}
-                    onValueChange={([value]) => setQrSize(value)}
-                    min={128}
-                    max={512}
-                    step={8}
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Cor do QR Code</Label>
-                    <Input
-                      type="color"
-                      value={qrForeground}
-                      onChange={(e) => setQrForeground(e.target.value)}
-                      className="w-full h-10"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Cor de Fundo</Label>
-                    <Input
-                      type="color"
-                      value={qrBackground}
-                      onChange={(e) => setQrBackground(e.target.value)}
-                      className="w-full h-10"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Nível de Correção</Label>
-                  <Select value={qrLevel} onValueChange={(value: "L" | "M" | "Q" | "H") => setQrLevel(value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione o nível de correção" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="L">Baixo (7%)</SelectItem>
-                      <SelectItem value="M">Médio (15%)</SelectItem>
-                      <SelectItem value="Q">Quartil (25%)</SelectItem>
-                      <SelectItem value="H">Alto (30%)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Posição da Logo</Label>
-                  <Select value={logoPosition} onValueChange={(value: "center" | "below") => setLogoPosition(value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione a posição da logo" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="center">Centro do QR Code</SelectItem>
-                      <SelectItem value="below">Abaixo do QR Code</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Texto Personalizado</Label>
-                  <Textarea
-                    placeholder="Digite um texto para aparecer junto ao QR Code"
-                    value={customText}
-                    onChange={(e) => setCustomText(e.target.value)}
-                    className="min-h-[80px]"
-                  />
-                  <Select value={textPosition} onValueChange={(value: "above" | "below") => setTextPosition(value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione a posição do texto" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="above">Acima do QR Code</SelectItem>
-                      <SelectItem value="below">Abaixo do QR Code</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {logoPreview && (
-                  <div className="space-y-2">
-                    <Label>Tamanho da Logo</Label>
-                    <div className="flex items-center gap-2">
-                      <Slider
-                        value={[logoSize * 100]}
-                        onValueChange={([value]) => setLogoSize(value / 100)}
-                        min={5}
-                        max={40}
-                        step={1}
-                        className="flex-1"
+                  <div className="">
+                    <div className="space-y-2">
+                      <Label>Cor do QR Code</Label>
+                      <Input
+                        type="color"
+                        value={qrForeground}
+                        onChange={(e) => setQrForeground(e.target.value)}
+                        className="w-full h-10"
                       />
-                      <span className="text-sm text-muted-foreground w-12 text-right">
-                        {Math.round(logoSize * 100)}%
-                      </span>
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      Ajuste o tamanho da logo em relação ao QR Code
-                    </p>
+                    
                   </div>
-                )}
+
+                  <div className="space-y-2">
+                    <Label>Cor de Fundo do Modelo de Impressão</Label>
+                    <Input
+                      type="color"
+                      value={printBackground}
+                      onChange={(e) => setPrintBackground(e.target.value)}
+                      className="w-full h-10"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Nível de Correção</Label>
+                    <Select value={qrLevel} onValueChange={(value: "L" | "M" | "Q" | "H") => setQrLevel(value)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione o nível de correção" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="L">Baixo (7%)</SelectItem>
+                        <SelectItem value="M">Médio (15%)</SelectItem>
+                        <SelectItem value="Q">Quartil (25%)</SelectItem>
+                        <SelectItem value="H">Alto (30%)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Posição da Logo</Label>
+                    <Select value={logoPosition} onValueChange={(value: "center" | "below") => setLogoPosition(value)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione a posição da logo" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="center">Centro do QR Code</SelectItem>
+                        <SelectItem value="below">Abaixo do QR Code</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Texto Personalizado</Label>
+                    <div className="space-y-4">
+                      <Textarea
+                        placeholder="Digite um texto para aparecer junto ao QR Code"
+                        value={customText}
+                        onChange={(e) => setCustomText(e.target.value)}
+                        className="min-h-[80px]"
+                      />
+                      
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label>Fonte do Texto</Label>
+                          <Select value={textFont} onValueChange={setTextFont}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione a fonte" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Montserrat">Montserrat</SelectItem>
+                              <SelectItem value="Poppins">Poppins</SelectItem>
+                              <SelectItem value="Roboto">Roboto</SelectItem>
+                              <SelectItem value="Open Sans">Open Sans</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label>Tamanho do Texto</Label>
+                          <Slider
+                            value={[textSize]}
+                            onValueChange={([value]) => setTextSize(value)}
+                            min={16}
+                            max={48}
+                            step={2}
+                          />
+                        </div>
+                      </div>
+
+                      <Select value={textPosition} onValueChange={(value: "above" | "below") => setTextPosition(value)}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione a posição do texto" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="above">Acima do QR Code</SelectItem>
+                          <SelectItem value="below">Abaixo do QR Code</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Cor do Texto</Label>
+                    <Input
+                      type="color"
+                      value={textColor}
+                      onChange={(e) => setTextColor(e.target.value)}
+                      className="w-full h-10"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Logo no Modelo de Impressão</Label>
+                    <div className="space-y-4">
+                      <div className="flex items-center space-x-2">
+                        <Switch
+                          checked={useMainLogo}
+                          onCheckedChange={setUseMainLogo}
+                        />
+                        <Label>Usar a mesma logo do QR Code</Label>
+                      </div>
+
+                      {!useMainLogo && (
+                        <div className="space-y-2">
+                          <Input
+                            type="file"
+                            accept="image/png,image/jpeg"
+                            onChange={(e) => setSecondLogo(e.target.files?.[0] || null)}
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            Faça upload de uma logo PNG ou JPG (máx. 2 MB) para o modelo de impressão
+                          </p>
+                        </div>
+                      )}
+
+                      <Select 
+                        value={secondLogoPosition} 
+                        onValueChange={(value: "top-left" | "top-right" | "bottom-left" | "bottom-right") => setSecondLogoPosition(value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione a posição da logo" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="top-left">Canto Superior Esquerdo</SelectItem>
+                          <SelectItem value="top-right">Canto Superior Direito</SelectItem>
+                          <SelectItem value="bottom-left">Canto Inferior Esquerdo</SelectItem>
+                          <SelectItem value="bottom-right">Canto Inferior Direito</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  {logoPreview && (
+                    <div className="space-y-2">
+                      <Label>Tamanho da Logo</Label>
+                      <div className="flex items-center gap-2">
+                        <Slider
+                          value={[logoSize * 100]}
+                          onValueChange={([value]) => setLogoSize(value / 100)}
+                          min={5}
+                          max={40}
+                          step={1}
+                          className="flex-1"
+                        />
+                        <span className="text-sm text-muted-foreground w-12 text-right">
+                          {Math.round(logoSize * 100)}%
+                        </span>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Ajuste o tamanho da logo em relação ao QR Code
+                      </p>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </CardContent>
