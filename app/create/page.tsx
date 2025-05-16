@@ -19,6 +19,7 @@ import { QRCodeSVG } from "qrcode.react"
 import { Slider } from "@/components/ui/slider"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
+import { PaymentModal } from "../../components/PaymentModal"
 
 const formSchema = z.object({
   email: z.string().email({ message: "E-mail inválido" }),
@@ -49,6 +50,7 @@ const formSchema = z.object({
 export default function CreatePage() {
   const { toast } = useToast()
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false)
   const [logoPreview, setLogoPreview] = useState<string | null>(null)
   const [qrSize, setQrSize] = useState(256)
   const [qrForeground, setQrForeground] = useState("#000000")
@@ -77,14 +79,19 @@ export default function CreatePage() {
   })
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
+    setIsPaymentModalOpen(true)
+  }
+
+  const handlePaymentConfirmed = async () => {
     setIsSubmitting(true)
+    setIsPaymentModalOpen(false)
 
     try {
       // Criar FormData para enviar o arquivo
       const formData = new FormData()
-      formData.append("email", values.email)
-      formData.append("contentType", values.contentType)
-      formData.append("content", values.content)
+      formData.append("email", form.getValues("email"))
+      formData.append("contentType", form.getValues("contentType"))
+      formData.append("content", form.getValues("content"))
       formData.append("qrSize", qrSize.toString())
       formData.append("qrForeground", qrForeground)
       formData.append("qrBackground", qrBackground)
@@ -100,13 +107,13 @@ export default function CreatePage() {
       formData.append("printBackground", printBackground)
 
       // Verificar se a logo existe e adicionar ao FormData
-      if (values.logo && values.logo.length > 0) {
+      if (form.getValues("logo") && form.getValues("logo").length > 0) {
         console.log("Logo encontrada:", {
-          name: values.logo[0].name,
-          type: values.logo[0].type,
-          size: values.logo[0].size,
+          name: form.getValues("logo")[0].name,
+          type: form.getValues("logo")[0].type,
+          size: form.getValues("logo")[0].size,
         })
-        formData.append("logo", values.logo[0])
+        formData.append("logo", form.getValues("logo")[0])
       } else {
         console.log("Nenhuma logo selecionada")
       }
@@ -114,26 +121,6 @@ export default function CreatePage() {
       if (!useMainLogo && secondLogo) {
         formData.append("secondLogo", secondLogo)
       }
-
-      // Log dos dados do FormData
-      console.log("Dados do formulário:", {
-        email: values.email,
-        contentType: values.contentType,
-        content: values.content,
-        qrSize,
-        qrForeground,
-        qrBackground,
-        logoSize,
-        logoPosition,
-        customText,
-        textPosition,
-        textFont,
-        textSize,
-        useMainLogo,
-        secondLogoPosition,
-        hasLogo: values.logo && values.logo.length > 0,
-        hasSecondLogo: !!secondLogo,
-      })
 
       // URL da API
       const apiUrl = "/api/qr"
@@ -476,9 +463,9 @@ export default function CreatePage() {
                     )}
                   </div>
                   {/* Segunda logo nos cantos do modelo de impressão */}
-                  {secondLogo && (
+                  {(secondLogo || (useMainLogo && logoPreview)) && (
                     <img
-                      src={URL.createObjectURL(secondLogo)}
+                      src={useMainLogo && logoPreview ? logoPreview : URL.createObjectURL(secondLogo!)}
                       alt="Segunda Logo"
                       style={{
                         position: 'absolute',
@@ -525,6 +512,21 @@ export default function CreatePage() {
                       {customText}
                     </p>
                   )}
+                  {/* Marca d'água no canto inferior direito */}
+                  <span
+                    className="absolute"
+                    style={{
+                      right: 12,
+                      bottom: 8,
+                      fontSize: 12,
+                      color: '#888',
+                      fontFamily: 'Arial, sans-serif',
+                      opacity: 0.7,
+                      zIndex: 10,
+                    }}
+                  >
+                    {`Gerado por "${process.env.NEXT_PUBLIC_APP_URL}"`}
+                  </span>
                 </div>
 
                 <div className="w-full mt-6 space-y-4">
@@ -718,6 +720,13 @@ export default function CreatePage() {
           </CardContent>
         </Card>
       </div>
+
+      <PaymentModal
+        isOpen={isPaymentModalOpen}
+        onClose={() => setIsPaymentModalOpen(false)}
+        onPaymentConfirmed={handlePaymentConfirmed}
+        defaultEmail={form.getValues("email")}
+      />
     </div>
   )
 }

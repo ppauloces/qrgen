@@ -1,22 +1,25 @@
-import type React from "react"
+import type { Metadata } from "next"
 import "@/app/globals.css"
 import { Inter } from "next/font/google"
 import { Toaster } from "@/components/ui/toaster"
 import { ThemeProvider } from "@/components/theme-provider"
+import { MercadoPagoScript } from "@/components/MercadoPagoScript"
 
 const inter = Inter({ subsets: ["latin"] })
 
-export const metadata = {
-  title: "QRGen - Gerador de QR Code Dinâmico",
-  description: "Crie QR Codes personalizados com sua logo, pague via Pix e receba os arquivos em PNG, SVG e PDF.",
-    generator: 'v0.dev'
+export const metadata: Metadata = {
+  title: "QRGen - Gerador de QR Code Personalizado",
+  description: "Gere QR Codes personalizados com logo e modelo de impressão",
+  icons: {
+    icon: '/favicon.ico',
+  },
 }
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode
-}>) {
+}) {
   return (
     <html lang="pt-BR" suppressHydrationWarning>
       <body className={inter.className}>
@@ -29,6 +32,7 @@ export default function RootLayout({
         >
           {children}
           <Toaster />
+          <MercadoPagoScript />
         </ThemeProvider>
       </body>
     </html>
