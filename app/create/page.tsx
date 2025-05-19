@@ -86,11 +86,10 @@ export default function CreatePage() {
     },
   })
 
-  async function onSubmit(values: z.infer<typeof formSchema>) {
+  const handleSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsSubmitting(true)
-
     try {
-      // Criar FormData para enviar o arquivo
+      // Primeiro, criar o QR code e armazenar os dados
       const formData = new FormData()
       formData.append("email", values.email)
       formData.append("contentType", values.contentType)
@@ -107,94 +106,41 @@ export default function CreatePage() {
       formData.append("useMainLogo", useMainLogo.toString())
       formData.append("secondLogoPosition", secondLogoPosition)
       formData.append("textColor", textColor)
-      formData.append("printBackground", printBackground)
-
-      // Verificar se a logo existe e adicionar ao FormData
-      if (values.logo && values.logo.length > 0) {
-        console.log("Logo encontrada:", {
-          name: values.logo[0].name,
-          type: values.logo[0].type,
-          size: values.logo[0].size,
-        })
+      
+      if (values.logo) {
         formData.append("logo", values.logo[0])
-      } else {
-        console.log("Nenhuma logo selecionada")
       }
 
-      if (!useMainLogo && secondLogo) {
-        formData.append("secondLogo", secondLogo)
-      }
+      // Criar o QR code e obter os dados
+      const qrResponse = await fetch('/api/qr', {
+        method: 'POST',
+        body: formData
+      })
+      
+      const qrData = await qrResponse.json()
 
-      // Log dos dados do FormData
-      console.log("Dados do formulário:", {
-        email: values.email,
-        contentType: values.contentType,
-        content: values.content,
-        qrSize,
-        qrForeground,
-        qrBackground,
-        logoSize,
-        logoPosition,
-        customText,
-        textPosition,
-        textFont,
-        textSize,
-        useMainLogo,
-        secondLogoPosition,
-        hasLogo: values.logo && values.logo.length > 0,
-        hasSecondLogo: !!secondLogo,
+      // Agora criar o pagamento com os dados do QR code
+      const paymentResponse = await fetch('/api/payment/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: values.email,
+          type: values.type,
+          qrCodeData: qrData // Incluir os dados do QR code
+        }),
       })
 
-      // URL da API
-      const apiUrl = "/api/qr"
-      console.log("Enviando requisição para:", apiUrl)
-
-      // Enviar para a API
-      const response = await fetch(apiUrl, {
-        method: "POST",
-        body: formData,
-      })
-
-      // Log da resposta
-      console.log("Status da resposta:", response.status)
-      console.log("Headers da resposta:", Object.fromEntries(response.headers.entries()))
-
-      // Tentar ler o corpo da resposta como texto primeiro
-      const responseText = await response.text()
-      console.log("Resposta bruta:", responseText)
-
-      // Verificar se a resposta é HTML
-      if (responseText.trim().startsWith("<!DOCTYPE")) {
-        console.error("Recebido HTML em vez de JSON")
-        throw new Error("Erro na rota da API")
-      }
-
-      // Tentar fazer o parse do JSON
-      let data
-      try {
-        data = JSON.parse(responseText)
-      } catch (e) {
-        console.error("Erro ao fazer parse do JSON:", e)
-        throw new Error("Resposta inválida do servidor")
-      }
-
-      if (!response.ok) {
-        throw new Error(data.error || "Erro ao processar o QR Code")
-      }
-
-      toast({
-        title: "QR Code enviado!",
-        description: "Verifique seu email para receber os arquivos.",
-      })
-
+      const paymentData = await paymentResponse.json()
+      setPixData(paymentData)
+      setShowPixModal(true)
     } catch (error) {
       toast({
         variant: "destructive",
-        title: "Erro ao processar o QR Code",
-        description: error instanceof Error ? error.message : "Ocorreu um erro ao processar sua solicitação. Tente novamente.",
+        title: "Erro ao processar pagamento",
+        description: "Tente novamente mais tarde.",
       })
     } finally {
-      setIsSubmitting(false);
+      setIsSubmitting(false)
     }
   }
 
@@ -446,7 +392,11 @@ export default function CreatePage() {
                   </div>
                 </div>
 
-                <Button type="submit" className="w-full" disabled={isSubmitting}>
+                <Button 
+                  type="submit" 
+                  className="w-full" 
+                  disabled={isSubmitting}
+                >
                   {isSubmitting ? "Processando..." : "Gerar QR Code"}
                 </Button>
               </form>
