@@ -19,6 +19,9 @@ import { QRCodeSVG } from "qrcode.react"
 import { Slider } from "@/components/ui/slider"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
+import { PixPaymentModal } from "@/components/ui/pix-payment-modal"
+import { useRouter } from "next/navigation"
+import type { PixPaymentData } from "@/lib/mercadopago"
 
 const formSchema = z.object({
   email: z.string().email({ message: "E-mail inválido" }),
@@ -27,6 +30,9 @@ const formSchema = z.object({
   }),
   content: z.string().min(1, { message: "O conteúdo é obrigatório" }).max(1000, {
     message: "O conteúdo deve ter no máximo 1000 caracteres",
+  }),
+  type: z.enum(['with_watermark', 'without_watermark'], {
+    required_error: "Selecione o tipo de QR code",
   }),
   logo: typeof FileList !== 'undefined' ? z
     .instanceof(FileList)
@@ -66,6 +72,9 @@ export default function CreatePage() {
   const [useMainLogo, setUseMainLogo] = useState(false)
   const [textColor, setTextColor] = useState("#000000")
   const [printBackground, setPrintBackground] = useState("#FFFFFF")
+  const [showPixModal, setShowPixModal] = useState(false)
+  const [pixData, setPixData] = useState<PixPaymentData | null>(null)
+  const router = useRouter()
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -73,36 +82,75 @@ export default function CreatePage() {
       email: "",
       contentType: "url",
       content: "",
+      type: "with_watermark",
     },
   })
 
-  async function onSubmit(values: z.infer<typeof formSchema>) {
-    setIsSubmitting(true);
+  const handleSubmit = async (values: z.infer<typeof formSchema>) => {
+    setIsSubmitting(true)
     try {
-      // Envie os dados do usuário para a API de pagamento
-      const response = await fetch("/api/payment", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: values.email }), // envie apenas o e-mail ou outros campos necessários
-      });
-
-      if (!response.ok) {
-        throw new Error("Erro ao criar pagamento");
+      // Primeiro, criar o QR code e armazenar os dados
+      const formData = new FormData()
+      formData.append("email", values.email)
+      formData.append("contentType", values.contentType)
+      formData.append("content", values.content)
+      formData.append("qrSize", qrSize.toString())
+      formData.append("qrForeground", qrForeground)
+      formData.append("qrBackground", qrBackground)
+      formData.append("logoSize", logoSize.toString())
+      formData.append("logoPosition", logoPosition)
+      formData.append("customText", customText)
+      formData.append("textPosition", textPosition)
+      formData.append("textFont", textFont)
+      formData.append("textSize", textSize.toString())
+      formData.append("useMainLogo", useMainLogo.toString())
+      formData.append("secondLogoPosition", secondLogoPosition)
+      formData.append("textColor", textColor)
+      
+      if (values.logo) {
+        formData.append("logo", values.logo[0])
       }
 
-      const { init_point } = await response.json();
+      // Criar o QR code e obter os dados
+      const qrResponse = await fetch('/api/qr', {
+        method: 'POST',
+        body: formData
+      })
+      
+      const qrData = await qrResponse.json()
 
-      // Redireciona para o checkout do Mercado Pago
-      window.location.href = init_point;
+      // Agora criar o pagamento com os dados do QR code
+      const paymentResponse = await fetch('/api/payment/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: values.email,
+          type: values.type,
+          qrCodeData: qrData // Incluir os dados do QR code
+        }),
+      })
+
+      const paymentData = await paymentResponse.json()
+      setPixData(paymentData)
+      setShowPixModal(true)
     } catch (error) {
       toast({
         variant: "destructive",
-        title: "Erro ao redirecionar para o pagamento",
-        description: error instanceof Error ? error.message : "Tente novamente.",
-      });
+        title: "Erro ao processar pagamento",
+        description: "Tente novamente mais tarde.",
+      })
     } finally {
-      setIsSubmitting(false);
+      setIsSubmitting(false)
     }
+  }
+
+  const handlePaymentSuccess = () => {
+    setShowPixModal(false)
+    toast({
+      title: "Sucesso!",
+      description: "Você receberá o QR Code por email em instantes.",
+    })
+    router.push('/')
   }
 
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -197,7 +245,7 @@ export default function CreatePage() {
           </CardHeader>
           <CardContent>
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
                 <FormField
                   control={form.control}
                   name="email"
@@ -309,18 +357,47 @@ export default function CreatePage() {
                   )}
                 />
 
+                <FormField
+                  control={form.control}
+                  name="type"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Tipo de QR Code</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione o tipo" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="with_watermark">Com marca d'água (R$7,00)</SelectItem>
+                          <SelectItem value="without_watermark">Sem marca d'água (R$10,00)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormDescription>Escolha se deseja gerar o QR code com ou sem marca d'água</FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
                 <div className="border-t pt-4">
                   <div className="flex items-center justify-between">
                     <div>
                       <h3 className="text-lg font-medium">Valor</h3>
                       <p className="text-sm text-gray-500">Pagamento único via Pix</p>
                     </div>
-                    <div className="text-xl font-bold">R$ 10,00</div>
+                    <div className="text-xl font-bold">
+                      R$ {form.watch("type") === "with_watermark" ? "7,00" : "10,00"}
+                    </div>
                   </div>
                 </div>
 
-                <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700" disabled={isSubmitting}>
-                  {isSubmitting ? "Processando..." : "Pagar com Mercado Pago"}
+                <Button 
+                  type="submit" 
+                  className="w-full" 
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? "Processando..." : "Gerar QR Code"}
                 </Button>
               </form>
             </Form>
@@ -634,6 +711,15 @@ export default function CreatePage() {
           </CardContent>
         </Card>
       </div>
+
+      {pixData && (
+        <PixPaymentModal
+          isOpen={showPixModal}
+          onClose={() => setShowPixModal(false)}
+          pixData={pixData}
+          onPaymentSuccess={handlePaymentSuccess}
+        />
+      )}
     </div>
   )
 }
