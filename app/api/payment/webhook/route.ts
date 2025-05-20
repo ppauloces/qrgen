@@ -3,8 +3,10 @@ import { NextResponse } from "next/server";
 import crypto from "crypto";
 import { getPaymentStatus } from "@/lib/mercadopago";
 import { emailService } from "@/lib/email";
+import { Resend } from "resend"
 
 const SECRET = process.env.MERCADO_PAGO_WEBHOOK!;
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 function verifySignature(body: string, signature: string) {
   const hash = crypto
@@ -38,18 +40,39 @@ export async function POST(request: Request) {
       const paymentId = event.data.id;
       
       // Recuperar os dados armazenados
-      const storedData = global.paymentData?.get(paymentId);
+      const storedData = global.paymentData?.get(String(paymentId));
       
       if (storedData) {
         // Enviar o email com os dados do QR code
-        await emailService.sendQRCodeEmail(
-          storedData.email,
-          String(paymentId),
-          `${process.env.NEXT_PUBLIC_APP_URL}/api/qr/download/${paymentId}`
-        );
+        await resend.emails.send({
+          from: "QRGen <onboarding@resend.dev>",
+          to: storedData.email,
+          subject: "Seu QR Code personalizado está pronto!",
+          html: `
+            <h1>Seu QR Code personalizado está pronto!</h1>
+            <p>Obrigado por usar o QRGen. Aqui está seu QR Code personalizado.</p>
+            <div style="text-align: center; margin: 20px 0;">
+              <img src="${storedData.qrCodeData.qrCode.base64}" alt="QR Code" style="max-width: 100%; height: auto;" />
+              ${storedData.qrCodeData.qrCode.printModelBase64 ? `
+                <h2>Modelo de Impressão</h2>
+                <img src="${storedData.qrCodeData.qrCode.printModelBase64}" alt="Modelo de Impressão" style="max-width: 100%; height: auto;" />
+              ` : ''}
+            </div>
+          `,
+          attachments: [
+            {
+              filename: "qrcode.png",
+              content: Buffer.from(storedData.qrCodeData.qrCode.png, 'base64'),
+            },
+            ...(storedData.qrCodeData.qrCode.printModelPng ? [{
+              filename: "modelo-impressao.png",
+              content: Buffer.from(storedData.qrCodeData.qrCode.printModelPng, 'base64'),
+            }] : []),
+          ],
+        });
 
         // Limpar os dados após o envio
-        global.paymentData.delete(paymentId);
+        global.paymentData.delete(String(paymentId));
         
         console.log("Email com QR code enviado com sucesso!");
       }

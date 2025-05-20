@@ -81,28 +81,32 @@ export const POST = async (request: Request) => {
       )
     }
 
-    // Gerar QR Code como PNG
+    // Gerar QR Code com nível de correção alto
     const qrPng = await QRCode.toBuffer(content, {
       type: "png",
       width: qrSize,
-      margin: 1,
+      margin: 2, // Aumentar margem para melhor leitura
       color: {
         dark: qrForeground || "#000000",
         light: qrBackground || "#FFFFFF",
       },
-      errorCorrectionLevel: "H",
+      errorCorrectionLevel: "H", // Nível máximo de correção
     })
 
     let finalQrPng = qrPng
     let printModelPng: Buffer | null = null
 
-    // Processar logo dentro do QR code se necessário
+    // Processar logo com melhorias
     if (logo) {
       try {
         const logoBuffer = Buffer.from(await logo.arrayBuffer())
-        const logoSizePixels = Math.floor(qrSize * logoSize)
-        const circleSize = Math.floor(logoSizePixels * 1.2) // 20% maior que a logo
+        const logoSize = parseFloat(formData.get("logoSize") as string) || 0.2
+        // Limitar tamanho da logo para 30% do QR code
+        const maxLogoSize = Math.min(logoSize, 0.3)
+        const logoSizePixels = Math.floor(qrSize * maxLogoSize)
 
+        // Criar círculo branco para a logo
+        const circleSize = Math.floor(logoSizePixels * 1.2) // 20% maior que a logo
         const circleSvg = `
           <svg width="${circleSize}" height="${circleSize}">
             <circle cx="${circleSize/2}" cy="${circleSize/2}" r="${circleSize/2}" fill="white"/>
@@ -110,10 +114,15 @@ export const POST = async (request: Request) => {
         `
         const circleBuffer = Buffer.from(circleSvg)
 
+        // Redimensionar logo mantendo proporção
         const resizedLogo = await sharp(logoBuffer)
-          .resize(logoSizePixels, logoSizePixels, { fit: "contain", background: { r: 255, g: 255, b: 255, alpha: 0 } })
+          .resize(logoSizePixels, logoSizePixels, { 
+            fit: "contain", 
+            background: { r: 255, g: 255, b: 255, alpha: 0 } 
+          })
           .toBuffer()
 
+        // Composição final com círculo branco e logo
         finalQrPng = await sharp(qrPng)
           .composite([
             {
@@ -130,7 +139,7 @@ export const POST = async (request: Request) => {
           .png()
           .toBuffer()
       } catch (error) {
-        console.error("Erro ao processar a logo:", error)
+        console.error("Erro ao processar logo:", error)
         finalQrPng = qrPng
       }
     }
@@ -300,46 +309,22 @@ export const POST = async (request: Request) => {
       console.log("Modelo de impressão não gerado - nenhuma condição atendida")
     }
 
-    // Converter para base64 para exibição no email
+    // Converter para base64
     const qrBase64 = `data:image/png;base64,${finalQrPng.toString("base64")}`
     const printModelBase64 = printModelPng ? `data:image/png;base64,${printModelPng.toString("base64")}` : null
 
-    console.log("Preparando email:", {
-      hasPrintModel: !!printModelPng,
-      hasPrintModelBase64: !!printModelBase64
+    // Retornar os dados do QR code sem enviar o email
+    return NextResponse.json({ 
+      success: true,
+      qrCode: {
+        base64: qrBase64,
+        printModelBase64,
+        png: finalQrPng.toString("base64"),
+        printModelPng: printModelPng ? printModelPng.toString("base64") : null
+      }
     })
-
-    // Enviar email com os arquivos
-    await resend.emails.send({
-      from: "QRGen <onboarding@resend.dev>",
-      to: email,
-      subject: "Seu QR Code personalizado está pronto!",
-      html: `
-        <h1>Seu QR Code personalizado está pronto!</h1>
-        <p>Obrigado por usar o QRGen. Aqui está seu QR Code personalizado.</p>
-        <div style="text-align: center; margin: 20px 0;">
-          <img src="${qrBase64}" alt="QR Code" style="max-width: 100%; height: auto;" />
-          ${printModelBase64 ? `
-            <h2>Modelo de Impressão</h2>
-            <img src="${printModelBase64}" alt="Modelo de Impressão" style="max-width: 100%; height: auto;" />
-          ` : ''}
-        </div>
-      `,
-      attachments: [
-        {
-          filename: "qrcode.png",
-          content: finalQrPng,
-        },
-        ...(printModelPng ? [{
-          filename: "modelo-impressao.png",
-          content: printModelPng,
-        }] : []),
-      ],
-    })
-
-    return NextResponse.json({ success: true })
   } catch (error) {
-    console.error("Error processing QR Code:", error)
+    console.error("Erro ao processar QR Code:", error)
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Erro ao processar o QR Code" },
       { status: 500 }
