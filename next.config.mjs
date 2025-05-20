@@ -8,6 +8,10 @@ const nextConfig = {
   },
   images: {
     unoptimized: true,
+    domains: ['resend.dev'],
+  },
+  experimental: {
+    serverComponentsExternalPackages: ['sharp'],
   },
 }
 
