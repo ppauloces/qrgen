@@ -74,8 +74,6 @@ export default function QRPage({ params }: { params: { id: string } }) {
   // Função para simular download do ZIP
   const downloadZip = () => {
     alert("Em um ambiente real, isso iniciaria o download do arquivo ZIP com os QR Codes.")
-    // Redirecionar para a página de download
-    window.location.href = `/qr/${params.id}/download`
   }
 
   if (loading && !qrData) {
