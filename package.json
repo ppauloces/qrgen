@@ -64,7 +64,7 @@
     "tailwind-merge": "^2.5.5",
     "tailwindcss-animate": "^1.0.7",
     "vaul": "^0.9.6",
-    "zod": "^3.22.4"
+    "zod": "latest"
   },
   "devDependencies": {
     "@types/mercadopago-sdk-js": "^2.0.17",
@@ -76,8 +76,6 @@
     "css-loader": "^7.1.2",
     "mini-css-extract-plugin": "^2.9.2",
     "postcss": "^8",
-    "postcss-loader": "^8.1.1",
-    "style-loader": "^4.0.0",
     "tailwindcss": "^3.4.17",
     "typescript": "^5"
   }
