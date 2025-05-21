@@ -45,7 +45,7 @@ export async function POST(request: Request) {
       if (storedData) {
         // Enviar o email com os dados do QR code
         await resend.emails.send({
-          from: "QRGen <no-reply@email.qrgen.com.br>",
+          from: "QRGen <no-reply@qrgen.com.br>",
           to: storedData.email,
           subject: "Seu QR Code personalizado está pronto!",
           html: `
