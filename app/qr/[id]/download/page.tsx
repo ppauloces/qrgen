@@ -7,7 +7,14 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
-export default function DownloadPage({ params }: { params: { id: string } }) {
+interface PageProps {
+  params: {
+    id: string
+  }
+  searchParams: { [key: string]: string | string[] | undefined }
+}
+
+export default function DownloadPage({ params }: PageProps) {
   const [status, setStatus] = useState<"loading" | "paid" | "not_paid" | "error">("loading")
 
   useEffect(() => {
@@ -60,7 +67,7 @@ export default function DownloadPage({ params }: { params: { id: string } }) {
   if (status === "not_paid") {
     return (
       <div className="container max-w-md py-10">
-        <Alert variant="warning">
+        <Alert variant="default">
           <AlertTitle>Pagamento pendente</AlertTitle>
           <AlertDescription>
             Não identificamos o pagamento para este QR Code. Realize o pagamento para baixar os arquivos.
