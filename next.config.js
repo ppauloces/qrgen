@@ -12,6 +12,21 @@ const nextConfig = {
       },
     ]
   },
+
+  // Adicionando configurações para o sharp
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: '**',
+      },
+    ],
+  },
+  
+  // Configuração para o sharp
+  experimental: {
+    optimizeCss: true,
+  },
 }
 
 module.exports = nextConfig
