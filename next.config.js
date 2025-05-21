@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Mantendo suas configurações de headers existentes
   async headers() {
     return [
       {
@@ -11,27 +12,6 @@ const nextConfig = {
       },
     ]
   },
-
-  // Configuração para o sharp
-  images: {
-    remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: '**',
-      },
-    ],
-  },
-
-  // Configurações para o sharp
-  experimental: {
-    serverActions: true,
-  },
-
-  // Configuração específica para o sharp na Vercel
-  webpack: (config) => {
-    config.externals = [...(config.externals || []), { sharp: 'commonjs sharp' }]
-    return config
-  },
 }
 
-module.exports = nextConfig 
+module.exports = nextConfig
