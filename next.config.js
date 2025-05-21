@@ -21,6 +21,11 @@ const nextConfig = {
       },
     ],
   },
+
+  // Configurações para o sharp
+  experimental: {
+    serverActions: true,
+  },
 }
 
 module.exports = nextConfig 

@@ -13,7 +13,8 @@ function hexToRgb(hex: string) {
   return { r, g, b, alpha: 1 }
 }
 
-export const POST = async (request: Request) => {
+// Exportar o método POST como uma função nomeada
+export async function POST(request: Request) {
   try {
     // Verificar se o request é válido
     if (!request.body) {
@@ -324,9 +325,9 @@ export const POST = async (request: Request) => {
       }
     })
   } catch (error) {
-    console.error("Erro ao processar QR Code:", error)
+    console.error("Erro ao processar requisição:", error)
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Erro ao processar o QR Code" },
+      { error: "Erro ao processar requisição" },
       { status: 500 }
     )
   }
