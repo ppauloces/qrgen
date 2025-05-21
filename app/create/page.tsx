@@ -579,7 +579,7 @@ export default function CreatePage() {
                       />
                       
                       <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
+                        {/* <div className="space-y-2">
                           <Label>Fonte do Texto</Label>
                           <Select value={textFont} onValueChange={setTextFont}>
                             <SelectTrigger>
@@ -592,7 +592,7 @@ export default function CreatePage() {
                               <SelectItem value="Open Sans">Open Sans</SelectItem>
                             </SelectContent>
                           </Select>
-                        </div>
+                        </div> */}
                         
                         <div className="space-y-2">
                           <Label>Tamanho do Texto</Label>
