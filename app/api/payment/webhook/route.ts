@@ -2,7 +2,7 @@
 import { NextResponse } from "next/server";
 import crypto from "crypto";
 import { getPaymentStatus } from "@/lib/mercadopago";
-import { emailService } from "@/lib/email";
+//import { emailService } from "@/lib/email";
 import { Resend } from "resend"
 
 const SECRET = process.env.MERCADO_PAGO_WEBHOOK!;
