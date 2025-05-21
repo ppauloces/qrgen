@@ -13,7 +13,7 @@ const nextConfig = {
     ]
   },
 
-  // Adicionando configurações para o sharp
+  // Configuração para o sharp
   images: {
     remotePatterns: [
       {
@@ -21,11 +21,6 @@ const nextConfig = {
         hostname: '**',
       },
     ],
-  },
-  
-  // Configuração para o sharp
-  experimental: {
-    optimizeCss: true,
   },
 }
 
