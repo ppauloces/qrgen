@@ -26,6 +26,12 @@ const nextConfig = {
   experimental: {
     serverActions: true,
   },
+
+  // Configuração específica para o sharp na Vercel
+  webpack: (config) => {
+    config.externals = [...(config.externals || []), { sharp: 'commonjs sharp' }]
+    return config
+  },
 }
 
 module.exports = nextConfig 
