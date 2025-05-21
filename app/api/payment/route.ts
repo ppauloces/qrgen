@@ -19,7 +19,7 @@ export async function POST(request: Request) {
         id: "qrgen-produto",
         title: "QR Code Personalizado",
         quantity: 1,
-        unit_price: 10,
+        unit_price: 5,
         currency_id: "BRL",
       }
     ],

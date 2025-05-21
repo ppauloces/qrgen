@@ -7,7 +7,7 @@ const client = new MercadoPagoConfig({
 const payment = new Payment(client);
 
 export async function createPixPayment(email: string, type: string) {
-  const amount = type === 'with_watermark' ? 1.01 : 2.01;
+  const amount = type === 'with_watermark' ? 5 : 5;
   const description = type === 'with_watermark' ? 'QR Code com marca d\'água' : 'QR Code sem marca d\'água';
   
   return await payment.create({

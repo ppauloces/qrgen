@@ -34,22 +34,7 @@ const formSchema = z.object({
   type: z.enum(['with_watermark', 'without_watermark'], {
     required_error: "Selecione o tipo de QR code",
   }),
-  logo: typeof FileList !== 'undefined' ? z
-    .instanceof(FileList)
-    .refine(
-      (files) => {
-        if (files.length === 0) return true
-        return (
-          files.length === 1 &&
-          (files[0].type === "image/png" || files[0].type === "image/jpeg") &&
-          files[0].size <= 2 * 1024 * 1024
-        )
-      },
-      {
-        message: "A logo deve ser um arquivo PNG ou JPG com no máximo 2 MB",
-      },
-    )
-    .optional() : z.any().optional(),
+  logo: z.any().optional(),
 })
 
 export default function CreatePage() {
@@ -229,7 +214,7 @@ export default function CreatePage() {
   }
 
   return (
-    <div className="container max-w-6xl py-10">
+    <div className="container max-w-6xl py-10 mx-auto px-4">
       <div className="mb-6">
         <Link href="/" className="inline-flex items-center text-sm font-medium text-primary hover:underline">
           <ArrowLeft className="mr-1 h-4 w-4" />
@@ -237,7 +222,7 @@ export default function CreatePage() {
         </Link>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-5xl mx-auto">
         <Card>
           <CardHeader>
             <CardTitle className="text-2xl">Criar QR Code</CardTitle>
@@ -357,7 +342,7 @@ export default function CreatePage() {
                   )}
                 />
 
-                <FormField
+                {/* <FormField
                   control={form.control}
                   name="type"
                   render={({ field }) => (
@@ -378,7 +363,7 @@ export default function CreatePage() {
                       <FormMessage />
                     </FormItem>
                   )}
-                />
+                /> */}
 
                 <div className="border-t pt-4">
                   <div className="flex items-center justify-between">
@@ -387,7 +372,7 @@ export default function CreatePage() {
                       <p className="text-sm text-gray-500">Pagamento único via Pix</p>
                     </div>
                     <div className="text-xl font-bold">
-                      R$ {form.watch("type") === "with_watermark" ? "7,00" : "10,00"}
+                      R$ {form.watch("type") === "with_watermark" ? "5,00" : "5,00"}
                     </div>
                   </div>
                 </div>
@@ -404,7 +389,7 @@ export default function CreatePage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card style={{ border: 'none' }}>
           <CardHeader>
             <CardTitle className="text-2xl">Preview</CardTitle>
             <CardDescription>Visualização do seu QR Code</CardDescription>
@@ -521,7 +506,7 @@ export default function CreatePage() {
                 </div>
 
                 <div className="w-full mt-6 space-y-4">
-                  <div className="space-y-2">
+                  {/* <div className="space-y-2">
                     <Label>Tamanho</Label>
                     <Slider
                       value={[qrSize]}
@@ -530,7 +515,7 @@ export default function CreatePage() {
                       max={512}
                       step={8}
                     />
-                  </div>
+                  </div> */}
 
                   <div className="">
                     <div className="space-y-2">
@@ -545,7 +530,7 @@ export default function CreatePage() {
                     
                   </div>
 
-                  <div className="space-y-2">
+                  {/* <div className="space-y-2">
                     <Label>Cor de Fundo do Modelo de Impressão</Label>
                     <Input
                       type="color"
@@ -553,7 +538,7 @@ export default function CreatePage() {
                       onChange={(e) => setPrintBackground(e.target.value)}
                       className="w-full h-10"
                     />
-                  </div>
+                  </div> */}
 
                   <div className="space-y-2">
                     <Label>Nível de Correção</Label>
